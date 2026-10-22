@@ -97,6 +97,12 @@ export class Canvas implements IScreen {
     return this;
   }
 
+  drawImage(image: CanvasImageSource, x: number, y: number, width?: number, height?: number): IScreen {
+    if(width !== undefined && height !== undefined) this.ctx.drawImage(image, x, y, width, height);
+    else this.ctx.drawImage(image, x, y);
+    return this;
+  }
+
   strokeRect(x: number, y:number, width: number, height:number): IScreen {
     this.ctx.strokeRect(x, y, width, height);
     return this;

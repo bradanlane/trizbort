@@ -289,6 +289,7 @@ export class Editor implements Subscriber {
       this.bgCanvas
         .fillStyle(App.map.settings.grid.background)
         .fillRect(0, 0, App.bgHTMLCanvas.offsetWidth, App.bgHTMLCanvas.offsetHeight);
+      this.grid.drawBackground(App.bgHTMLCanvas, this.bgCanvas);
       this.grid.draw(App.bgHTMLCanvas, this.bgCanvas);
       this.mainCanvas.clearRect(0, 0, App.mainHTMLCanvas.width, App.mainHTMLCanvas.height);
       //this.views.forEach((v: View) => v.clear(this.mainCanvas));

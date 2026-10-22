@@ -3,7 +3,7 @@ import { MapSettings } from '../../models';
 import { AppEvent } from '../../enums/'
 import { App } from '../../App'
 import { Panel }  from '../'
-import { IdRange, IdCheck, IdPopup, IdColorPicker, IdShape, IdLineStyle, Window } from '../../controls'
+import { IdRange, IdCheck, IdPopup, IdColorPicker, IdShape, IdLineStyle, IdInput, Window } from '../../controls'
 import { ObsidianTheme, DiagramTheme, HandDrawnTheme } from '../../themes'
 
 export class RenderPanel extends Panel implements Subscriber {
@@ -14,6 +14,7 @@ export class RenderPanel extends Panel implements Subscriber {
   private ctrlGridOrigin: IdCheck;
   private ctrlGridSnap: IdCheck;
   private ctrlGridSize: IdRange;
+  private ctrlGridBackgroundUrl: IdInput;
   private ctrlHanddrawn: IdCheck;
   private mapColorPicker: IdColorPicker;
   private mapColorType: string;
@@ -69,6 +70,12 @@ export class RenderPanel extends Panel implements Subscriber {
     this.ctrlGridOrigin = new IdCheck('.js-grid-origin', this.elem).addEventListener('input', () => { App.map.settings.grid.origin = this.ctrlGridOrigin.checked})
     this.ctrlGridSnap = new IdCheck('.js-grid-snap', this.elem).addEventListener('input', () => { App.map.settings.grid.snap = this.ctrlGridSnap.checked})
     this.ctrlGridSize = new IdRange('.js-grid-size', this.elem).addEventListener('input', () => { App.map.settings.grid.size = this.ctrlGridSize.value; });
+    // UI for optional custom background source. When this value changes,
+    // Grid reloads image candidates with this URL at highest priority.
+    this.ctrlGridBackgroundUrl = new IdInput('.js-grid-background-url', this.elem).addEventListener('change', () => {
+      App.map.settings.grid.backgroundUrl = this.ctrlGridBackgroundUrl.value.trim();
+      Dispatcher.notify(AppEvent.Refresh, null);
+    }, false);
 
     this.ctrlHanddrawn = new IdCheck('.js-handdrawn', this.elem).addEventListener('input', () => { App.map.settings.basic.handdrawn = this.ctrlHanddrawn.checked})
     this.mapColorPicker = new IdColorPicker('.js-map-color', this.elem).addEventListener('change', () => { this.setMapColor(this.mapColorPicker.color); }) as IdColorPicker;
@@ -165,6 +172,7 @@ export class RenderPanel extends Panel implements Subscriber {
     this.ctrlGridOrigin.checked = App.map.settings.grid.origin;
     this.ctrlGridSnap.checked = App.map.settings.grid.snap;
     this.ctrlGridSize.value = App.map.settings.grid.size;
+    this.ctrlGridBackgroundUrl.value = App.map.settings.grid.backgroundUrl;
     this.ctrlHanddrawn.checked = App.map.settings.basic.handdrawn;
     this.ctrlFontSize.value = App.map.settings.basic.fontSize;
     this.ctrlFontType.checked = App.map.settings.basic.fontFamily != 'Roboto';

@@ -6,3 +6,4 @@ dist
 tscommand-*.tmp.txt
 _site
 public/icons.svg
+.DS_Store
