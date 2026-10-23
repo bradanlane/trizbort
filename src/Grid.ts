@@ -41,11 +41,15 @@ export class Grid {
 
   private getBackgroundCandidates() {
     const url = (App.map.settings.grid.backgroundUrl || '').trim();
-    const defaults = ['background.svg', 'background.png', 'background.jpg'];
-    // Loading hierarchy:
+
+	// Loading hierarchy:
     // 1) User-provided URL from Map Settings (if present)
     // 2) Local fallback files in priority order: svg, png, jpg
-    return (url ? [url, ...defaults] : defaults);
+    
+	// change to only support a URL; avoids error loading resources in console log
+	// const defaults = ['background.svg', 'background.png', 'background.jpg'];
+    // return (url ? [url, ...defaults] : defaults);
+    return (url ? [url] : []);
   }
 
   private ensureBackgroundSource() {
