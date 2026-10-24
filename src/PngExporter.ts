@@ -15,6 +15,9 @@ export class PngExporter {
   private top: number;
   private width: number;
   private height: number;
+  // Optional loaded background image for export. Null when unavailable
+  // or when CORS rules prevent safe rendering.
+  private backgroundImage: HTMLImageElement | null = null;
 
   public constructor(map: Map) {
     this.map = map;
@@ -52,6 +55,10 @@ export class PngExporter {
 
     this.canvas.translate(this.left, this.top);      
 
+    if(withBackground) {
+      this.drawBackgroundGraphic();
+    }
+
     // Draw all blocks:
     this.views.forEach((view: View) => {
       if(view instanceof BlockView) {
@@ -74,6 +81,77 @@ export class PngExporter {
     });
 
     this.canvas.restore();
+  }
+
+  private drawBackgroundGraphic() {
+    if(!this.backgroundImage) return;
+
+    const scalePercent = Number(this.map.settings.grid.backgroundScale ?? 100);
+    const clampedScalePercent = Math.min(400, Math.max(0, scalePercent));
+    if(clampedScalePercent <= 0) return;
+
+    const opacityPercent = Number(this.map.settings.grid.backgroundOpacity ?? 100);
+    const opacity = Math.min(100, Math.max(0, opacityPercent)) / 100;
+
+    const drawWidth = this.backgroundImage.naturalWidth * (clampedScalePercent / 100);
+    const drawHeight = this.backgroundImage.naturalHeight * (clampedScalePercent / 100);
+    const drawX = -drawWidth / 2;
+    const drawY = -drawHeight / 2;
+
+    this.canvas.save();
+    this.canvas.globalAlpha(opacity);
+    this.canvas.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
+    this.canvas.restore();
+  }
+
+  // Check whether a URL resolves to this app's origin.
+  // Same-origin images can be drawn/exported without CORS negotiation.
+  private isSameOrigin(path: string) {
+    try {
+      const url = new URL(path, window.location.href);
+      return url.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
+  // Load the configured background URL for export. For remote URLs, request
+  // anonymous CORS so the canvas stays readable when the server allows it.
+  private loadBackgroundGraphic(): Promise<HTMLImageElement | null> {
+    const url = (this.map.settings.grid.backgroundUrl || '').trim();
+    if(!url) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+      const image = new Image();
+      if(!this.isSameOrigin(url)) {
+        // Ask browser for CORS-enabled image loading. If host does not
+        // allow it, onerror fires and we skip the background image.
+        image.crossOrigin = 'anonymous';
+      }
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = url;
+    });
+  }
+
+  // Get background image bounds in world coordinates (centered at 0,0).
+  private getBackgroundBounds() {
+    if(!this.backgroundImage) return null;
+
+    const scalePercent = Number(this.map.settings.grid.backgroundScale ?? 100);
+    const clampedScalePercent = Math.min(400, Math.max(0, scalePercent));
+    if(clampedScalePercent <= 0) return null;
+
+    const width = this.backgroundImage.naturalWidth * (clampedScalePercent / 100);
+    const height = this.backgroundImage.naturalHeight * (clampedScalePercent / 100);
+    if(width <= 0 || height <= 0) return null;
+
+    return {
+      minX: -width / 2,
+      minY: -height / 2,
+      maxX: width / 2,
+      maxY: height / 2
+    };
   }
 
   // 
@@ -124,7 +202,10 @@ export class PngExporter {
   // Export the current map to a PNG file, which is offered
   // for download.
   // 
-  public export() {
+  public async export() {
+    // Load optional background image before render passes begin.
+    this.backgroundImage = await this.loadBackgroundGraphic();
+
     // Create views for all models.
     this.views = [];
     this.map.elements.forEach((model) => {
@@ -153,6 +234,30 @@ export class PngExporter {
       this.top = -minY;
       this.width = Math.abs(maxX - minX);
       this.height = Math.abs(maxY - minY);
+    }
+
+    // Ensure export bounds cover background extents when the background
+    // image is larger than map object extents.
+    const backgroundBounds = this.getBackgroundBounds();
+    if(backgroundBounds) {
+      // Convert current export rectangle from (left/top + width/height)
+      // back to world-space min/max so we can union with background bounds.
+      const boundsMinX = -this.left;
+      const boundsMinY = -this.top;
+      const boundsMaxX = boundsMinX + this.width;
+      const boundsMaxY = boundsMinY + this.height;
+
+      const minX = Math.min(boundsMinX, backgroundBounds.minX);
+      const minY = Math.min(boundsMinY, backgroundBounds.minY);
+      const maxX = Math.max(boundsMaxX, backgroundBounds.maxX);
+      const maxY = Math.max(boundsMaxY, backgroundBounds.maxY);
+
+      // Convert back to exporter offsets/sizes. Ceil to avoid clipping on
+      // fractional pixel edges after scaling.
+      this.left = -minX;
+      this.top = -minY;
+      this.width = Math.max(1, Math.ceil(maxX - minX));
+      this.height = Math.max(1, Math.ceil(maxY - minY));
     }
 
     // Do render passes, checking after each pass if anything is drawn
@@ -194,7 +299,31 @@ export class PngExporter {
   // 
   private downloadAsBlob() {
     // Create blob. The browser takes a callback function for this:
-    this.toBlob((blob) => { this.downloadAsBlobCallback(blob) }, "image/png", 1);
+    this.toBlob((blob) => {
+      if(blob) {
+        this.downloadAsBlobCallback(blob);
+        return;
+      }
+
+      if(this.backgroundImage) {
+        // Most likely canvas tainting from a cross-origin background image.
+        // Retry once without the background graphic instead of hard-failing.
+        console.warn('PNG export retrying without background image (cross-origin restriction).');
+        this.backgroundImage = null;
+        this.render(true);
+        this.toBlob((retryBlob) => {
+          if(retryBlob) {
+            this.downloadAsBlobCallback(retryBlob);
+          } else {
+            alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
+          }
+        }, 'image/png', 1);
+        return;
+      }
+
+      // Nothing left to retry (or retry also failed).
+      alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
+    }, "image/png", 1);
   }
 
   private downloadAsBlobCallback(blob: Blob) {
@@ -223,19 +352,29 @@ export class PngExporter {
   // that don't support the toBlob method.
   // (https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob)
   // 
-  private toBlob(callback: (blob: Blob) => void, type: string, quality: 1) {
+  private toBlob(callback: (blob: Blob | null) => void, type: string, quality: 1) {
     if(this.canvasElem.toBlob) {
-      return this.canvasElem.toBlob(callback, type, quality);
+      try {
+        return this.canvasElem.toBlob(callback, type, quality);
+      } catch {
+        // Some browsers throw immediately on tainted canvas.
+        callback(null);
+      }
     } else {
       let canv = this.canvasElem;
       setTimeout(function() {
-        let binStr = atob(canv.toDataURL(type, quality).split(',')[1] );
-        let len = binStr.length;
-        let arr = new Uint8Array(len);
-        for (var i = 0; i < len; i++ ) {
-          arr[i] = binStr.charCodeAt(i);
+        try {
+          let binStr = atob(canv.toDataURL(type, quality).split(',')[1] );
+          let len = binStr.length;
+          let arr = new Uint8Array(len);
+          for (var i = 0; i < len; i++ ) {
+            arr[i] = binStr.charCodeAt(i);
+          }
+          callback(new Blob( [arr], {type: type || 'image/png'} ));
+        } catch {
+          // toDataURL also fails on tainted canvas in fallback path.
+          callback(null);
         }
-        callback(new Blob( [arr], {type: type || 'image/png'} ));
       });
     }
   }

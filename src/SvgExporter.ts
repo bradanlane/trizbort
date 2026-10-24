@@ -13,6 +13,12 @@ export class SvgExporter {
   private height: number;
   private padding: number = 50;
 
+  // Embedded background image payload and intrinsic dimensions.
+  // If empty/zero, export falls back to plain color background only.
+  private backgroundDataUrl = '';
+  private backgroundWidth = 0;
+  private backgroundHeight = 0;
+
   public constructor(map: Map) {
     this.map = map;
   }
@@ -21,17 +27,64 @@ export class SvgExporter {
   // Export the current map to an SVG file.
   //
   public async export() {
-    // Calculate bounding box
-    this.calculateBounds();
-
     // Load fonts as base64
     const fontStyles = await this.loadFonts();
+
+    // Load optional background image as embedded data URL so the SVG is
+    // self-contained and does not rely on remote assets after download.
+    await this.loadBackgroundImage();
+
+    // Calculate bounding box after background dimensions are known so
+    // export area includes either object or background extents.
+    this.calculateBounds();
 
     // Generate SVG content
     const svg = this.generateSvg(fontStyles);
 
     // Download
     this.download(svg);
+  }
+
+  // Fetch the configured background image and cache it as a data URL.
+  // Failures are intentionally non-fatal so SVG export still succeeds.
+  private async loadBackgroundImage(): Promise<void> {
+    this.backgroundDataUrl = '';
+    this.backgroundWidth = 0;
+    this.backgroundHeight = 0;
+
+    const url = (this.map.settings.grid.backgroundUrl || '').trim();
+    if (!url) return;
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) return;
+
+      const blob = await response.blob();
+      this.backgroundDataUrl = await this.blobToBase64(blob);
+
+      const objectUrl = URL.createObjectURL(blob);
+      try {
+        const dims = await this.getImageDimensions(objectUrl);
+        this.backgroundWidth = dims.width;
+        this.backgroundHeight = dims.height;
+      } finally {
+        URL.revokeObjectURL(objectUrl);
+      }
+    } catch {
+      // If the image fails to load, keep exporting without it.
+    }
+  }
+
+  // Resolve intrinsic image dimensions for correct scaled placement.
+  private getImageDimensions(url: string): Promise<{ width: number, height: number }> {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      };
+      image.onerror = () => reject(new Error('Could not load image dimensions'));
+      image.src = url;
+    });
   }
 
   //
@@ -115,10 +168,43 @@ export class SvgExporter {
       maxY = 100;
     }
 
+    // Expand object bounds with background bounds (if present).
+    const backgroundBounds = this.getBackgroundBounds();
+    if (backgroundBounds) {
+      minX = Math.min(minX, backgroundBounds.minX);
+      minY = Math.min(minY, backgroundBounds.minY);
+      maxX = Math.max(maxX, backgroundBounds.maxX);
+      maxY = Math.max(maxY, backgroundBounds.maxY);
+    }
+
     this.left = minX - this.padding;
     this.top = minY - this.padding;
     this.width = maxX - minX + this.padding * 2;
     this.height = maxY - minY + this.padding * 2;
+  }
+
+  // Get background image bounds in world coordinates (centered at 0,0).
+  private getBackgroundBounds() {
+    if (!this.backgroundDataUrl || this.backgroundWidth <= 0 || this.backgroundHeight <= 0) {
+      return null;
+    }
+
+    const scalePercent = Number(this.map.settings.grid.backgroundScale ?? 100);
+    const clampedScalePercent = Math.min(400, Math.max(0, scalePercent));
+    if (clampedScalePercent <= 0) return null;
+
+    // Export uses the same centered placement as render: background is
+    // anchored around world origin and scaled by backgroundScale.
+    const scale = clampedScalePercent / 100;
+    const drawWidth = this.backgroundWidth * scale;
+    const drawHeight = this.backgroundHeight * scale;
+
+    return {
+      minX: -drawWidth / 2,
+      minY: -drawHeight / 2,
+      maxX: drawWidth / 2,
+      maxY: drawHeight / 2
+    };
   }
 
   //
@@ -163,8 +249,26 @@ export class SvgExporter {
       parts.push(`  </defs>`);
     }
 
-    // Background
+    // Background color
     parts.push(`  <rect x="${this.left}" y="${this.top}" width="${this.width}" height="${this.height}" fill="${this.map.settings.grid.background}"/>`);
+
+    // Optional background image, centered on map origin like in editor view.
+    if (this.backgroundDataUrl && this.backgroundWidth > 0 && this.backgroundHeight > 0) {
+      const scalePercent = Number(this.map.settings.grid.backgroundScale ?? 100);
+      const clampedScalePercent = Math.min(400, Math.max(0, scalePercent));
+      const opacityPercent = Number(this.map.settings.grid.backgroundOpacity ?? 100);
+      const opacity = Math.min(100, Math.max(0, opacityPercent)) / 100;
+
+      if (clampedScalePercent > 0 && opacity > 0) {
+        const scale = clampedScalePercent / 100;
+        const drawWidth = this.backgroundWidth * scale;
+        const drawHeight = this.backgroundHeight * scale;
+        const x = -drawWidth / 2;
+        const y = -drawHeight / 2;
+
+        parts.push(`  <image x="${x}" y="${y}" width="${drawWidth}" height="${drawHeight}" href="${this.backgroundDataUrl}" opacity="${opacity}" preserveAspectRatio="none"/>`);
+      }
+    }
 
     // Draw blocks first (behind everything)
     this.map.elements.forEach((model) => {
