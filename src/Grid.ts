@@ -79,6 +79,10 @@ export class Grid {
       this.backgroundWidthUnit = 'px';
       this.backgroundHeightUnit = 'px';
 
+      if(!Number.isFinite(App.map.settings.grid.backgroundScale) || App.map.settings.grid.backgroundScale <= 0) {
+        App.map.settings.grid.backgroundScale = 100;
+      }
+
       // If SVG is selected, refine dimensions/units from SVG metadata.
       // Only do this for same-origin assets to avoid CORS fetch failures.
       if(imagePath.toLowerCase().endsWith('.svg') && this.isSameOrigin(imagePath)) {
@@ -172,6 +176,13 @@ export class Grid {
     return gridSize;
   }
 
+  private getBackgroundBaseSizePx() {
+    const settings = App.map.settings.grid;
+    const widthPx = this.backgroundWidth * this.backgroundUnitScale(this.backgroundWidthUnit, settings.size) * App.zoom * App.devicePixelRatio;
+    const heightPx = this.backgroundHeight * this.backgroundUnitScale(this.backgroundHeightUnit, settings.size) * App.zoom * App.devicePixelRatio;
+    return { width: widthPx, height: heightPx };
+  }
+
   drawBackground(htmlCanvas: HTMLCanvasElement, canvas: Canvas) {
     this.ensureBackgroundSource();
     if(!this.backgroundLoaded) return;
@@ -189,14 +200,24 @@ export class Grid {
     const dpr = App.devicePixelRatio;
     const originX = Math.floor(htmlCanvas.offsetWidth / 2) + App.centerX;
     const originY = Math.floor(htmlCanvas.offsetHeight / 2) + App.centerY;
-    // Final size in canvas pixels:
-    // image_dimension * unit_scale * zoom * devicePixelRatio
-    const drawWidth = imageWidth * this.backgroundUnitScale(this.backgroundWidthUnit, settings.size) * App.zoom * dpr;
-    const drawHeight = imageHeight * this.backgroundUnitScale(this.backgroundHeightUnit, settings.size) * App.zoom * dpr;
+    const opacity = Number(settings.backgroundOpacity ?? 100);
+    const clampedOpacity = Math.min(100, Math.max(0, opacity)) / 100;
+
+    const baseSizePx = this.getBackgroundBaseSizePx();
+    const defaultWidthPx = baseSizePx.width;
+    const defaultHeightPx = baseSizePx.height;
+    const scalePercent = Number(settings.backgroundScale ?? 100);
+    const clampedScalePercent = Math.min(400, Math.max(0, scalePercent));
+    const scaleFactor = clampedScalePercent / 100;
+    const drawWidth = defaultWidthPx * scaleFactor;
+    const drawHeight = defaultHeightPx * scaleFactor;
     const drawX = originX - drawWidth / 2;
     const drawY = originY - drawHeight / 2;
 
+    canvas.save();
+    canvas.globalAlpha(clampedOpacity);
     canvas.drawImage(this.backgroundImage, drawX, drawY, drawWidth, drawHeight);
+    canvas.restore();
   }
 
   private drawGridLineV(htmlCanvas: HTMLCanvasElement, canvas: Canvas, x: number) {

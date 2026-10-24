@@ -41,6 +41,11 @@ export class Canvas implements IScreen {
     return this;
   }
 
+  globalAlpha(alpha: number): IScreen {
+    this.ctx.globalAlpha = alpha;
+    return this;
+  }
+
   translate(x: number, y: number): IScreen {
     this.ctx.translate(x, y);
     return this;

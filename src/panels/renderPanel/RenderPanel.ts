@@ -15,6 +15,8 @@ export class RenderPanel extends Panel implements Subscriber {
   private ctrlGridSnap: IdCheck;
   private ctrlGridSize: IdRange;
   private ctrlGridBackgroundUrl: IdInput;
+  private ctrlGridBackgroundScale: IdRange;
+  private ctrlGridBackgroundOpacity: IdRange;
   private ctrlHanddrawn: IdCheck;
   private mapColorPicker: IdColorPicker;
   private mapColorType: string;
@@ -76,6 +78,14 @@ export class RenderPanel extends Panel implements Subscriber {
       App.map.settings.grid.backgroundUrl = this.ctrlGridBackgroundUrl.value.trim();
       Dispatcher.notify(AppEvent.Refresh, null);
     }, false);
+    this.ctrlGridBackgroundScale = new IdRange('.js-grid-background-scale', this.elem).addEventListener('input', () => {
+      const value = Math.min(400, Math.max(0, this.ctrlGridBackgroundScale.value));
+      App.map.settings.grid.backgroundScale = value;
+    });
+    this.ctrlGridBackgroundOpacity = new IdRange('.js-grid-background-opacity', this.elem).addEventListener('input', () => {
+      const opacity = Math.min(100, Math.max(0, this.ctrlGridBackgroundOpacity.value));
+      App.map.settings.grid.backgroundOpacity = opacity;
+    });
 
     this.ctrlHanddrawn = new IdCheck('.js-handdrawn', this.elem).addEventListener('input', () => { App.map.settings.basic.handdrawn = this.ctrlHanddrawn.checked})
     this.mapColorPicker = new IdColorPicker('.js-map-color', this.elem).addEventListener('change', () => { this.setMapColor(this.mapColorPicker.color); }) as IdColorPicker;
@@ -173,6 +183,8 @@ export class RenderPanel extends Panel implements Subscriber {
     this.ctrlGridSnap.checked = App.map.settings.grid.snap;
     this.ctrlGridSize.value = App.map.settings.grid.size;
     this.ctrlGridBackgroundUrl.value = App.map.settings.grid.backgroundUrl;
+    this.ctrlGridBackgroundScale.value = Math.min(400, Math.max(0, Number(App.map.settings.grid.backgroundScale ?? 100)));
+    this.ctrlGridBackgroundOpacity.value = Math.min(100, Math.max(0, Number(App.map.settings.grid.backgroundOpacity ?? 100)));
     this.ctrlHanddrawn.checked = App.map.settings.basic.handdrawn;
     this.ctrlFontSize.value = App.map.settings.basic.fontSize;
     this.ctrlFontType.checked = App.map.settings.basic.fontFamily != 'Roboto';

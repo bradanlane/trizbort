@@ -16,6 +16,8 @@ class MapSettingsGrid {
   originWidth = 5;
   background = '#ffffff';
   backgroundUrl = '';
+  backgroundOpacity = 100;
+  backgroundScale = 100;
 }
 
 class MapSettingsRoom {

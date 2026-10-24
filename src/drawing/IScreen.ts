@@ -33,6 +33,7 @@ export interface IScreen {
   // State
   save(): IScreen;
   restore(): IScreen;
+  globalAlpha(alpha: number): IScreen;
   translate(x: number, y: number): IScreen;
   rotate(angle: number): IScreen;
   scale(x: number, y?: number): IScreen;
