@@ -1173,8 +1173,12 @@ export class Editor implements Subscriber {
       if(!(model instanceof Connector)) {
         // Clone the model and add it to the map:
         let newModel: Model = model.clone();
-        (newModel as Box).x += Grid.snap(this.mouseX);
-        (newModel as Box).y += Grid.snap(this.mouseY);
+		// the paste coordinates are often crazy far away to the point of being off screen
+        // (newModel as Box).x += Grid.snap(this.mouseX);
+        // (newModel as Box).y += Grid.snap(this.mouseY);
+		// let's try pasting at the mouse cursor (snapped to the grid)
+		(newModel as Box).x = Grid.snap(this.mouseX);
+		(newModel as Box).y = Grid.snap(this.mouseY);
         App.map.add(newModel);
         // Create a view and add it to the selection:
         let view: View = ViewFactory.create(newModel);
