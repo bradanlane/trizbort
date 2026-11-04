@@ -15,7 +15,12 @@ export class ConnectorPanel extends Panel implements Subscriber {
   private ctrlLineStyle: IdLineStyle;
   private ctrlLineWidth: IdRange;
   private btnReverse: HTMLLinkElement;
-  
+  private ctrlHasDoor: IdCheck;
+  private ctrlDoorDesc: IdInput;
+  private ctrlDoorAtStart: IdCheck;
+  private ctrlLockable: IdCheck;
+  private ctrlLocked: IdCheck;
+  private ctrlKey: IdInput;
   private ctrlStartType: IdConnectorType;
   private ctrlEndType: IdConnectorType;
   private ctrlStartName: IdInput;
@@ -30,6 +35,7 @@ export class ConnectorPanel extends Panel implements Subscriber {
     this.ctrlName = new IdInput('.js-name', this.elem).addEventListener('input', () => { this.connector.name = this.ctrlName.value; });
     this.ctrlCurve = new IdCheck('.js-curve', this.elem).addEventListener('input', () => { this.connector.isCurve = this.ctrlCurve.checked; });
     this.ctrlOneWay = new IdCheck('.js-oneway', this.elem).addEventListener('input', () => { this.connector.oneWay = this.ctrlOneWay.checked; });
+
     this.ctrlLineStyle = new IdLineStyle('.js-linestyle', this.elem).addEventListener('change', () => { this.connector.lineStyle = this.ctrlLineStyle.value; }) as IdLineStyle;
     this.ctrlLineWidth = new IdRange('.js-linewidth', this.elem).addEventListener('input', () => { this.connector.lineWidth = this.ctrlLineWidth.value; });
     this.ctrlColor = new IdColorPicker('.js-color', this.elem).addEventListener('change', () => { this.connector.color = this.ctrlColor.color; }) as IdColorPicker;
@@ -40,7 +46,14 @@ export class ConnectorPanel extends Panel implements Subscriber {
     this.ctrlEndType = new IdConnectorType('.js-endtype', this.elem).addEventListener('input', () => { this.connector.endType = this.ctrlEndType.value; });
     this.ctrlStartLabel = new IdInput('.js-startlabel', this.elem).addEventListener('input', () => { this.connector.startLabel = this.ctrlStartLabel.value; });
     this.ctrlEndLabel = new IdInput('.js-endlabel', this.elem).addEventListener('input', () => { this.connector.endLabel = this.ctrlEndLabel.value; });
-  }
+
+	this.ctrlHasDoor = new IdCheck('.js-hasdoor', this.elem).addEventListener('input', () => { this.connector.hasDoor = this.ctrlHasDoor.checked; });
+	this.ctrlDoorDesc = new IdInput('.js-doordesc', this.elem).addEventListener('input', () => { this.connector.doorDesc = this.ctrlDoorDesc.value; });
+	this.ctrlDoorAtStart = new IdCheck('.js-dooratstart', this.elem).addEventListener('input', () => { this.connector.doorAtStart = this.ctrlDoorAtStart.checked; });
+	this.ctrlLockable = new IdCheck('.js-lockable', this.elem).addEventListener('input', () => { this.connector.lockable = this.ctrlLockable.checked; });
+	this.ctrlLocked = new IdCheck('.js-locked', this.elem).addEventListener('input', () => { this.connector.locked = this.ctrlLocked.checked; });
+	this.ctrlKey = new IdInput('.js-key', this.elem).addEventListener('input', () => { this.connector.key = this.ctrlKey.value; });
+}
 
   notify(event: AppEvent, obj: any) {
     if(event == AppEvent.Select) {

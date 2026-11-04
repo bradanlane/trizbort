@@ -14,6 +14,12 @@ export class Connector extends Model {
   private _startDir: Direction;
   private _endDir: Direction;  
   private _oneWay: boolean;
+  private _hasDoor: boolean;
+  private _doorDesc: string;
+  private _doorAtStart: boolean;
+  private _lockable: boolean;
+  private _locked: boolean;
+  private _key: string;
   private _startType: ConnectorType;  
   private _endType: ConnectorType;  
   private _startLabel: string;
@@ -34,6 +40,12 @@ export class Connector extends Model {
     this._startX = this.startY = 0;
     this._endX = this.endY = 0;
     this._oneWay = false;
+    this._hasDoor = false;
+    this._doorDesc = '';
+    this._doorAtStart = false;
+    this._lockable = false;
+    this._locked = false;
+    this._key = '';
     this._startType = ConnectorType.Default;
     this._endType = ConnectorType.Default;
     this._startLabel = '';
@@ -157,6 +169,59 @@ export class Connector extends Model {
     this.setDirty();
   }
 
+  public get hasDoor(): boolean {
+    return this._hasDoor;
+  }
+
+  public set hasDoor(value: boolean) {
+    this._hasDoor = value;
+    this.setDirty();
+  }
+  public get doorDesc(): string {
+    return this._doorDesc;
+  }
+
+  public set doorDesc(value: string) {
+    this._doorDesc = value;
+    this.setDirty();
+  }
+
+  public get doorAtStart(): boolean {
+    return this._doorAtStart;
+  }
+
+  public set doorAtStart(value: boolean) {
+    this._doorAtStart = value;
+    this.setDirty();
+  }
+
+  public get lockable(): boolean {
+    return this._lockable;
+  }
+
+  public set lockable(value: boolean) {
+    this._lockable = value;
+    this.setDirty();
+  }
+
+  public get locked(): boolean {
+    return this._locked;
+  }
+
+  public set locked(value: boolean) {
+    this._locked = value;
+    this.setDirty();
+  }
+
+  public get key(): string {
+    return this._key;
+  }
+
+  public set key(value: string) {
+    this._key = value;
+    this.setDirty();
+  }
+  
   public get startType(): ConnectorType {
     return this._startType;
   }
