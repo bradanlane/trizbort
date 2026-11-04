@@ -111,6 +111,14 @@ export class RoomView extends BoxView {
           App.map.settings.basic.fontFamily, this.room.subtitle);
     }
 
+	// Room description marker
+	if(this.room.description) {
+		// draw a small square in the lower right corner to indicate a description
+		canvas
+	        .fillStyle(this.room.map.settings.room.darkColor)
+			.fillRect(this.room.width - 12, this.room.height - 12, 8, 8);
+    }
+
     // Objects in room
     let x = this.room.width * 0.8;
     let y = this.room.height + 20;
