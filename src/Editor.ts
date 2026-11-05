@@ -765,8 +765,9 @@ export class Editor implements Subscriber {
     // We do different things for different mouse modes.
     switch(App.mouseMode) {
       case MouseMode.Scroll:
-        App.centerX = this.scrollOriginX + (e.clientX - this.scrollOffsetX) * App.devicePixelRatio;
-        App.centerY = this.scrollOriginY + (e.clientY - this.scrollOffsetY) * App.devicePixelRatio;
+        // Axis-specific panning: invert X and Y to match expected feel.
+        App.centerX = this.scrollOriginX - (e.clientX - this.scrollOffsetX) * App.devicePixelRatio;
+        App.centerY = this.scrollOriginY - (e.clientY - this.scrollOffsetY) * App.devicePixelRatio;
         this.refresh(true);
         break; 
 
@@ -880,8 +881,9 @@ export class Editor implements Subscriber {
   }
 
   canvasMouseWheel(e: WheelEvent) {
-    App.centerX += e.deltaX;
-    App.centerY += e.deltaY;
+    // Axis-specific wheel panning to match drag-pan direction.
+    App.centerX -= e.deltaX;
+    App.centerY -= e.deltaY;
     this.refresh(true);
   }   
 
