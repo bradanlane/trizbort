@@ -10,7 +10,16 @@ import { IdGuide, showTooltip, hideTooltip } from './controls'
 import { Rect } from './util/Rect'
 import { MenuPanel } from './panels'
 
+type GestureEventLike = Event & {
+  scale: number;
+  clientX: number;
+  clientY: number;
+}
+
 export class Editor implements Subscriber {
+  private static readonly WHEEL_PINCH_SENSITIVITY = 0.0025;	// these control how sensitive the wheel pinch zoom is
+  private static readonly GESTURE_SCALE_DAMPING = 0.35;	// this controls how much the gesture scale is damped
+
   private mainCanvas: Canvas;
   private bgCanvas: Canvas;
   private grid: Grid = new Grid();
@@ -46,6 +55,12 @@ export class Editor implements Subscriber {
   private scrollOriginY: number;
   private dragOriginX: number = 0
   private dragOriginY: number = 0;
+  private gestureActive: boolean = false;
+  private gestureStartZoom: number = 1;
+  private gestureAnchorWorldX: number = 0;
+  private gestureAnchorWorldY: number = 0;
+  private gestureAnchorClientX: number = 0;
+  private gestureAnchorClientY: number = 0;
 
   private refreshAll     = true;
   private resfreshAlways = false;
@@ -73,7 +88,13 @@ export class Editor implements Subscriber {
     App.mainHTMLCanvas.addEventListener('mousedown', (e:MouseEvent) => { this.canvasMouseDown(e) } );
     App.mainHTMLCanvas.addEventListener('mouseup', (e:MouseEvent) => { this.canvasMouseUp(e) } );
     App.mainHTMLCanvas.addEventListener('mousemove', (e:MouseEvent) => { this.canvasMouseMove(e) } );
-    App.mainHTMLCanvas.addEventListener('wheel', (e:WheelEvent) => { this.canvasMouseWheel(e) } );    
+    // Handle pinch-to-zoom on desktop browsers:
+    // - Safari emits gesture events on trackpad pinch.
+    // - Chrome commonly reports pinch as ctrl+wheel.
+    App.mainHTMLCanvas.addEventListener('wheel', (e:WheelEvent) => { this.canvasMouseWheel(e) }, { passive: false } );
+    App.mainHTMLCanvas.addEventListener('gesturestart', (e: Event) => { this.canvasGestureStart(e as GestureEventLike); }, { passive: false } );
+    App.mainHTMLCanvas.addEventListener('gesturechange', (e: Event) => { this.canvasGestureChange(e as GestureEventLike); }, { passive: false } );
+    App.mainHTMLCanvas.addEventListener('gestureend', (e: Event) => { this.canvasGestureEnd(e); }, { passive: false } );
     App.mainHTMLCanvas.addEventListener('dblclick', (e:MouseEvent) => { this.canvasMouseDoubleClick(e)} );
     App.mainHTMLCanvas.addEventListener('contextmenu', (e:MouseEvent) => { this.canvasContextMenu(e)} );
 
@@ -537,14 +558,18 @@ export class Editor implements Subscriber {
   // Find canvas mouse coordinates, taking into 
   // account scrolling and zooming.
   // 
-  findMouseCoordinates(e: MouseEvent) {
+  findMouseCoordinatesFromClient(clientX: number, clientY: number) {
     let { x, y } = this.findObjCoordinates(App.mainHTMLCanvas);
     const dpr = App.devicePixelRatio;
     const result = {
-      x: Math.floor((e.clientX - x - App.mainHTMLCanvas.offsetWidth / 2 / dpr - App.centerX / dpr) / App.zoom),
-      y: Math.floor((e.clientY - y - App.mainHTMLCanvas.offsetHeight / 2 / dpr - App.centerY / dpr) / App.zoom)
+      x: Math.floor((clientX - x - App.mainHTMLCanvas.offsetWidth / 2 / dpr - App.centerX / dpr) / App.zoom),
+      y: Math.floor((clientY - y - App.mainHTMLCanvas.offsetHeight / 2 / dpr - App.centerY / dpr) / App.zoom)
     };
     return result;
+  }
+
+  findMouseCoordinates(e: MouseEvent) {
+    return this.findMouseCoordinatesFromClient(e.clientX, e.clientY);
   }
 
   findViewByCoordinates(x: number, y: number) {
@@ -881,11 +906,57 @@ export class Editor implements Subscriber {
   }
 
   canvasMouseWheel(e: WheelEvent) {
+    if(e.ctrlKey) {
+      e.preventDefault();
+      const zoomFactor = Math.exp(-e.deltaY * Editor.WHEEL_PINCH_SENSITIVITY);
+      const { x, y } = this.findMouseCoordinatesFromClient(e.clientX, e.clientY);
+      this.mouseX = x;
+      this.mouseY = y;
+      this.applyZoomAtClientPoint(App.zoom * zoomFactor, x, y, e.clientX, e.clientY);
+      return;
+    }
+
     // Axis-specific wheel panning to match drag-pan direction.
     App.centerX -= e.deltaX;
     App.centerY -= e.deltaY;
     this.refresh(true);
-  }   
+  }
+
+  canvasGestureStart(e: GestureEventLike) {
+    e.preventDefault();
+    this.gestureActive = true;
+    this.gestureStartZoom = App.zoom;
+    const { x, y } = this.findMouseCoordinatesFromClient(e.clientX, e.clientY);
+    this.gestureAnchorWorldX = x;
+    this.gestureAnchorWorldY = y;
+    this.gestureAnchorClientX = e.clientX;
+    this.gestureAnchorClientY = e.clientY;
+    this.mouseX = x;
+    this.mouseY = y;
+  }
+
+  canvasGestureChange(e: GestureEventLike) {
+    if(!this.gestureActive) return;
+    e.preventDefault();
+    const scale = (typeof e.scale === 'number' && isFinite(e.scale)) ? e.scale : 1;
+    const dampedScale = Math.pow(scale, Editor.GESTURE_SCALE_DAMPING);
+    this.mouseX = this.gestureAnchorWorldX;
+    this.mouseY = this.gestureAnchorWorldY;
+    this.applyZoomAtClientPoint(
+      this.gestureStartZoom * dampedScale,
+      this.gestureAnchorWorldX,
+      this.gestureAnchorWorldY,
+      this.gestureAnchorClientX,
+      this.gestureAnchorClientY
+    );
+  }
+
+  canvasGestureEnd(e: Event) {
+    if(!this.gestureActive) return;
+    e.preventDefault();
+    this.gestureActive = false;
+    this.gestureStartZoom = App.zoom;
+  }
 
   //-----------------------------------------
   //
@@ -1235,6 +1306,50 @@ export class Editor implements Subscriber {
     elem.addEventListener('mouseleave', () => hideTooltip());
   }
 
+  private clampZoom(value: number): number {
+    if(value >= 10) return 10;
+    if(value <= 0.1) return 0.1;
+    return value;
+  }
+
+  private hasCapturedMousePosition(): boolean {
+    return this.mouseX !== -100 && this.mouseY !== -100;
+  }
+
+  private applyZoomAtWorldPoint(nextZoom: number, worldX?: number, worldY?: number) {
+    const oldZoom = App.zoom;
+    const clampedZoom = this.clampZoom(nextZoom);
+    if(clampedZoom === oldZoom) return;
+
+    App.zoom = clampedZoom;
+    if(typeof worldX === 'number' && typeof worldY === 'number' && isFinite(worldX) && isFinite(worldY)) {
+      App.centerX = -worldX * App.zoom * App.devicePixelRatio;
+      App.centerY = -worldY * App.zoom * App.devicePixelRatio;
+    } else {
+      App.centerX = App.centerX * App.zoom / oldZoom;
+      App.centerY = App.centerY * App.zoom / oldZoom;
+    }
+
+    this.updateZoomPercentage();
+    this.refresh(true);
+  }
+
+  private applyZoomAtClientPoint(nextZoom: number, worldX: number, worldY: number, clientX: number, clientY: number) {
+    const oldZoom = App.zoom;
+    const clampedZoom = this.clampZoom(nextZoom);
+    if(clampedZoom === oldZoom) return;
+
+    App.zoom = clampedZoom;
+
+    let { x, y } = this.findObjCoordinates(App.mainHTMLCanvas);
+    const dpr = App.devicePixelRatio;
+    App.centerX = dpr * (clientX - x - App.mainHTMLCanvas.offsetWidth / 2 / dpr - worldX * App.zoom);
+    App.centerY = dpr * (clientY - y - App.mainHTMLCanvas.offsetHeight / 2 / dpr - worldY * App.zoom);
+
+    this.updateZoomPercentage();
+    this.refresh(true);
+  }
+
   cmdZoom() {
     let zoomStr = this.ctrlZoom.value;
     // Remove percentage sign if present
@@ -1242,14 +1357,8 @@ export class Editor implements Subscriber {
     // Convert to number. Ignore result on failure.
     let zoomPercentage = parseFloat(zoomStr);
     if(!isNaN(zoomPercentage)) {
-      let oldZoom = App.zoom;
-      // Set zoom level (clamp range)
-      App.zoom = zoomPercentage / 100;
-      if(App.zoom >= 10) App.zoom = 10;
-      if(App.zoom <= 0.1) App.zoom = 0.1;
-      // Adjust center to keep the same world point at view center
-      App.centerX = App.centerX * App.zoom / oldZoom;
-      App.centerY = App.centerY * App.zoom / oldZoom;
+      this.applyZoomAtWorldPoint(zoomPercentage / 100);
+      return;
     }
     // Place new zoom percentage in control.
     this.updateZoomPercentage();
@@ -1257,49 +1366,35 @@ export class Editor implements Subscriber {
   }
 
   cmdZoomIn() {
-    let oldZoom = App.zoom;
     if(App.zoom < 1) {
-      App.zoom = App.zoom * Values.ZOOM_FRACTION;
+      if(this.hasCapturedMousePosition()) {
+        this.applyZoomAtWorldPoint(App.zoom * Values.ZOOM_FRACTION, this.mouseX, this.mouseY);
+      } else {
+        this.applyZoomAtWorldPoint(App.zoom * Values.ZOOM_FRACTION);
+      }
     } else {
-      App.zoom += Values.ZOOM_ADDITIVE;
+      if(this.hasCapturedMousePosition()) {
+        this.applyZoomAtWorldPoint(App.zoom + Values.ZOOM_ADDITIVE, this.mouseX, this.mouseY);
+      } else {
+        this.applyZoomAtWorldPoint(App.zoom + Values.ZOOM_ADDITIVE);
+      }
     }
-    // Clamp zoom level
-    if(App.zoom >= 10) App.zoom = 10;
-    if(App.zoom <= 0.1) App.zoom = 0.1;
-    // If we have a captured mouse world position, center the map on it.
-    if(this.mouseX === -100 && this.mouseY === -100) {
-      // Fallback when no mouse position has been captured yet.
-      App.centerX = App.centerX * App.zoom / oldZoom;
-      App.centerY = App.centerY * App.zoom / oldZoom;
-    } else {
-      App.centerX = -this.mouseX * App.zoom * App.devicePixelRatio;
-      App.centerY = -this.mouseY * App.zoom * App.devicePixelRatio;
-    }
-    this.updateZoomPercentage();
-    this.refresh(true);
   }
 
   cmdZoomOut() {
-    let oldZoom = App.zoom;
     if(App.zoom <= 1) {
-      App.zoom = App.zoom / Values.ZOOM_FRACTION;
+      if(this.hasCapturedMousePosition()) {
+        this.applyZoomAtWorldPoint(App.zoom / Values.ZOOM_FRACTION, this.mouseX, this.mouseY);
+      } else {
+        this.applyZoomAtWorldPoint(App.zoom / Values.ZOOM_FRACTION);
+      }
     } else {
-      App.zoom -= Values.ZOOM_ADDITIVE;
+      if(this.hasCapturedMousePosition()) {
+        this.applyZoomAtWorldPoint(App.zoom - Values.ZOOM_ADDITIVE, this.mouseX, this.mouseY);
+      } else {
+        this.applyZoomAtWorldPoint(App.zoom - Values.ZOOM_ADDITIVE);
+      }
     }
-    // Clamp zoom level
-    if(App.zoom >= 10) App.zoom = 10;
-    if(App.zoom <= 0.1) App.zoom = 0.1;
-    // If we have a captured mouse world position, center the map on it.
-    if(this.mouseX === -100 && this.mouseY === -100) {
-      // Fallback when no mouse position has been captured yet.
-      App.centerX = App.centerX * App.zoom / oldZoom;
-      App.centerY = App.centerY * App.zoom / oldZoom;
-    } else {
-      App.centerX = -this.mouseX * App.zoom * App.devicePixelRatio;
-      App.centerY = -this.mouseY * App.zoom * App.devicePixelRatio;
-    }
-    this.updateZoomPercentage();
-    this.refresh(true);
   }
 
   cmdZoomNormal() {
