@@ -1264,9 +1264,16 @@ export class Editor implements Subscriber {
     // Clamp zoom level
     if(App.zoom >= 10) App.zoom = 10;
     if(App.zoom <= 0.1) App.zoom = 0.1;
-    // Adjust center to keep the same world point at view center
-    App.centerX = App.centerX * App.zoom / oldZoom;
-    App.centerY = App.centerY * App.zoom / oldZoom;
+    // Keep the world point under the mouse cursor fixed during zoom.
+    if(this.mouseX === -100 && this.mouseY === -100) {
+      // Fallback when no mouse position has been captured yet.
+      App.centerX = App.centerX * App.zoom / oldZoom;
+      App.centerY = App.centerY * App.zoom / oldZoom;
+    } else {
+      const zoomDelta = oldZoom - App.zoom;
+      App.centerX += this.mouseX * zoomDelta * App.devicePixelRatio;
+      App.centerY += this.mouseY * zoomDelta * App.devicePixelRatio;
+    }
     this.updateZoomPercentage();
     this.refresh(true);
   }
@@ -1281,9 +1288,16 @@ export class Editor implements Subscriber {
     // Clamp zoom level
     if(App.zoom >= 10) App.zoom = 10;
     if(App.zoom <= 0.1) App.zoom = 0.1;
-    // Adjust center to keep the same world point at view center
-    App.centerX = App.centerX * App.zoom / oldZoom;
-    App.centerY = App.centerY * App.zoom / oldZoom;
+    // Keep the world point under the mouse cursor fixed during zoom.
+    if(this.mouseX === -100 && this.mouseY === -100) {
+      // Fallback when no mouse position has been captured yet.
+      App.centerX = App.centerX * App.zoom / oldZoom;
+      App.centerY = App.centerY * App.zoom / oldZoom;
+    } else {
+      const zoomDelta = oldZoom - App.zoom;
+      App.centerX += this.mouseX * zoomDelta * App.devicePixelRatio;
+      App.centerY += this.mouseY * zoomDelta * App.devicePixelRatio;
+    }
     this.updateZoomPercentage();
     this.refresh(true);
   }
