@@ -56,6 +56,7 @@ class MapSettingsConnector {
   arrowSize = 5;
   curveStrength = 0.4;
   labelDistance = 12;
+  nameMaxWidth = 0;
   /* fontCfg    = (hand: boolean, mode: 'obj' |'string') => { let res: fontSettings = (hand? {size: 11.8, family: 'danielbd'}:{size: 12.8, family: 'Roboto'}); return (mode == 'obj'? res : `${res.size}px ${res.family}`)  };
   font2Cfg    = (hand: boolean, mode: 'obj' |'string') => { let res: fontSettings = (hand? {size: 9.8, family: 'danielbd'}:{size: 10.8, family: 'Roboto'}); return (mode == 'obj'? res : `${res.size}px ${res.family}`)  }; */
 }

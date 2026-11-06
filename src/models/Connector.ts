@@ -28,6 +28,7 @@ export class Connector extends Model {
   private _lineStyle: LineStyle;
   private _lineWidth: number;
   private _isCurve: boolean;
+  private _nameMaxWidth: number;
 
   constructor(settings: MapSettings) {
     super();
@@ -290,6 +291,15 @@ export class Connector extends Model {
 
   set isCurve(curve: boolean) {
     this._isCurve = curve;
+    this.setDirty();
+  }
+
+  get nameMaxWidth(): number {
+    return this._nameMaxWidth ?? this.map.settings.connector.nameMaxWidth;
+  }
+
+  set nameMaxWidth(width: number) {
+    this._nameMaxWidth = width;
     this.setDirty();
   }
 

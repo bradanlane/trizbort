@@ -80,6 +80,43 @@ export class ConnectorView extends View {
     canvas.restore();        
   }
 
+  // Get the number of lines required to display the connector name text with word wrapping within the specified max width.
+  private getWrappedLineCount(canvas: IScreen, text: string, fontSize: number, fontFamily: string, maxWidth: number): number {
+    const paragraphs = text.split(/\r?\n/);
+    let lineCount = 0;
+
+    for (const paragraph of paragraphs) {
+      const trimmed = paragraph.trim();
+      if (!trimmed) {
+        lineCount++;
+        continue;
+      }
+
+      const words = trimmed.split(/\s+/);
+      let currentLine = '';
+
+      for (const word of words) {
+        const testLine = currentLine ? `${currentLine} ${word}` : word;
+        if (canvas.textWidth(testLine, fontSize, fontFamily) <= maxWidth || !currentLine) {
+          currentLine = testLine;
+        } else {
+          lineCount++;
+          currentLine = word;
+        }
+      }
+
+      if (currentLine) {
+        lineCount++;
+      }
+    }
+
+    return Math.max(1, lineCount);
+  }
+
+  private getLineCountWithoutWrap(text: string): number {
+    return Math.max(1, text.split(/\r?\n/).length);
+  }
+
   draw(canvas: IScreen, hover: boolean) {
     var dockStartX: number = this.connector.startX;
     var dockStartY: number = this.connector.startY;
@@ -256,21 +293,48 @@ export class ConnectorView extends View {
     }
 
     // Draw name (if any)
+	// support wrapping long name text
+	// a wrap value of 0 means do not wrap
     if(this.connector.name) {
-      let textWidth = canvas.textWidth(this.connector.name, App.map.settings.basic.fontSize, App.map.settings.basic.fontFamily);
+      const fontSize = App.map.settings.basic.fontSize;
+      const fontFamily = App.map.settings.basic.fontFamily;
+      const maxWidth = Math.max(0, this.connector.nameMaxWidth);
+      const rawTextWidth = canvas.textWidth(this.connector.name, fontSize, fontFamily);
+      const textAreaWidth = maxWidth > 0 ? Math.min(rawTextWidth, maxWidth) : rawTextWidth;
+      const lineHeight = Math.ceil(fontSize) + 1;
+      const lineCount = maxWidth > 0
+        ? this.getWrappedLineCount(canvas, this.connector.name, fontSize, fontFamily, textAreaWidth)
+        : this.getLineCountWithoutWrap(this.connector.name);
+      const paddingX = 5;
+      const paddingY = 4;
+      const textAreaHeight = lineCount * lineHeight;
+      const labelWidth = textAreaWidth + paddingX * 2;
+      const labelHeight = textAreaHeight + paddingY * 2;
+      const labelX = centerx - labelWidth / 2;
+      const labelY = centery - labelHeight / 2;
+
       canvas
         .lineWidth(1)
         .lineDash(LineStyle.Solid)
         .strokeStyle('#000')
         .fillStyle('#fff')
-        .roundedRect(centerx - textWidth / 2 - 5, centery - 11, textWidth + 10, 20, 3)
+        .roundedRect(labelX, labelY, labelWidth, labelHeight, 3)
         .fill()
         .stroke()
         .fillStyle('#333')
-        .fillText(this.connector.name, centerx, centery, 
-          App.map.settings.basic.fontSize,
-          App.map.settings.basic.fontFamily, 
+      if (maxWidth > 0) {
+        canvas.drawText(labelX + paddingX, labelY + paddingY, textAreaWidth, textAreaHeight,
+          fontSize,
+          fontFamily,
+          this.connector.name);
+      } else {
+        canvas.fillText(this.connector.name, centerx, centery,
+          fontSize,
+          fontFamily,
           TextAlign.Center, TextBaseline.Middle);
+      }
+
+      this.clearRegion.maximize(new Rect(labelX, labelY, labelX + labelWidth, labelY + labelHeight));
     }
 
     // Draw start and end types

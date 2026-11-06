@@ -9,6 +9,7 @@ export class ConnectorPanel extends Panel implements Subscriber {
   private connector: Connector;
 
   private ctrlName: IdInput;
+  private ctrlNameMaxWidth: IdRange;
   private ctrlCurve: IdCheck;
   private ctrlOneWay: IdCheck;
   private ctrlColor: IdColorPicker;
@@ -33,6 +34,7 @@ export class ConnectorPanel extends Panel implements Subscriber {
     Dispatcher.subscribe(this);
     
     this.ctrlName = new IdInput('.js-name', this.elem).addEventListener('input', () => { this.connector.name = this.ctrlName.value; });
+    this.ctrlNameMaxWidth = new IdRange('.js-name-max-width', this.elem).addEventListener('input', () => { this.connector.nameMaxWidth = this.ctrlNameMaxWidth.value; });
     this.ctrlCurve = new IdCheck('.js-curve', this.elem).addEventListener('input', () => { this.connector.isCurve = this.ctrlCurve.checked; });
     this.ctrlOneWay = new IdCheck('.js-oneway', this.elem).addEventListener('input', () => { this.connector.oneWay = this.ctrlOneWay.checked; });
 
@@ -68,6 +70,7 @@ export class ConnectorPanel extends Panel implements Subscriber {
 
         //  Update connector data.
         this.ctrlName.value = connector.name; 
+        this.ctrlNameMaxWidth.value = connector.nameMaxWidth;
         this.ctrlCurve.checked = connector.isCurve;
         this.ctrlOneWay.checked = connector.oneWay;
         this.ctrlLineStyle.value = connector.lineStyle;
