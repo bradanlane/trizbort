@@ -33,3 +33,26 @@ Trizbort.io is written in TypeScript using the [JAMstack](https://jamstack.org/)
 ## Public web application
 
 The public end-user implementation of Trizbort runs at [Trizbort.io](https://www.trizbort.io). The implementation is updated regularly to reflect changes as these are built into this repository.
+
+
+## Fork: bradanlane Branch: background_image
+
+This brand has a series of additions:
+I also found a few things ...
+
+1. Support for loading an SVG, PNG, or JPG as a background image to the grid.
+    - _The purpose is to simplify building game maps which have a connection to physical spaces. The graphic adheres to zoom and pan operations such that added map elements maintain their position over the underlying graphic._
+    - The graphic is supplied as a URL in the map rendering settings UI.
+	- The url is persisted in the map JSON thru save and load operations.
+	- **Note:** Depending on the server deployment of the Trizbot app, there could be a cross domain limitation. Effort was made to minimize it but it ultimately comes down to server settings.
+1. Changed the copy/paste offset.
+    - The existing implementation adds the cursor XY to the original XY. This means the new XY can be very far away (even beyond the viewed map).
+    - The modified behavior places the copy at the cursor.
+1. Made the lower limit for the "dark mark" on a room smaller
+1. Added a small square in the lower right corner of a room to provide a visual indicator the room has description text
+1. Added the code to support doors on connectors
+    - The handlebars file had the markup but it never rendered
+    - The necessary JavaScript has been added
+    - The UI was moved to the bottom of the Connector panel
+1. Implemented pinch-zoom for more intuitive UX. _(needs testing on more browsers and platforms)_
+1. UI for an optional max length of connector name text and then text wrap support
