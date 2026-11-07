@@ -56,3 +56,4 @@ I also found a few things ...
     - The UI was moved to the bottom of the Connector panel
 1. Implemented pinch-zoom for more intuitive UX. _(needs testing on more browsers and platforms)_
 1. UI for an optional max length of connector name text and then text wrap support
+1. Text alignment for Notes _(this was a more extensive change than others as it required adding a new control type and leverage the existing `TextAlign` in new locations; however, the implementation now allows for other view types to take advantage of it)_
