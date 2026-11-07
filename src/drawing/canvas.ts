@@ -457,7 +457,11 @@ export class Canvas implements IScreen {
   // Supports **bold** and *italic* markdown.
   drawText(x: number, y: number, width: number, height: number, fontSize: number, font: string, text: string, align: TextAlign = TextAlign.Center): IScreen {
     const lineHeight = Math.ceil(fontSize) + 1;
-
+	let horizontalPadding = 0;
+	if (align !== TextAlign.Center) {
+		horizontalPadding = 4;
+		width -= horizontalPadding;
+	}
     // Split by explicit line breaks first
     const paragraphs = text.split('\n');
     const wrappedLines: TextSegment[][] = [];
@@ -478,7 +482,7 @@ export class Canvas implements IScreen {
     }
 
     // Horizontal alignment in bounds.
-    const xPos = align === TextAlign.Left ? x : align === TextAlign.Right ? x + width : x + width / 2;
+    const xPos = align === TextAlign.Left ? (x + horizontalPadding) : align === TextAlign.Right ? ((x + width) - horizontalPadding) : x + width / 2;
     let yPos = y - (wrappedLines.length - 1) * lineHeight / 2 + height / 2;
 
     // Render each wrapped line
