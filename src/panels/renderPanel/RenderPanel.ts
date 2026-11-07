@@ -3,7 +3,7 @@ import { MapSettings } from '../../models';
 import { AppEvent } from '../../enums/'
 import { App } from '../../App'
 import { Panel }  from '../'
-import { IdRange, IdCheck, IdPopup, IdColorPicker, IdShape, IdLineStyle, IdInput, Window } from '../../controls'
+import { IdRange, IdCheck, IdPopup, IdColorPicker, IdShape, IdAlignment, IdLineStyle, IdInput, Window } from '../../controls'
 import { ObsidianTheme, DiagramTheme, HandDrawnTheme } from '../../themes'
 
 export class RenderPanel extends Panel implements Subscriber {
@@ -46,6 +46,7 @@ export class RenderPanel extends Panel implements Subscriber {
 
   private ctrlNoteWidth: IdRange;
   private ctrlNoteHeight: IdRange;
+  private ctrlNoteAlignment: IdAlignment;
   private ctrlNoteLinewidth: IdRange;
   private ctrlNoteRounding: IdRange;
   private noteColorPicker: IdColorPicker;
@@ -137,6 +138,7 @@ export class RenderPanel extends Panel implements Subscriber {
 
     this.ctrlNoteWidth = new IdRange('.js-note-width', this.elem).addEventListener('input', () => { App.map.settings.note.width = this.ctrlNoteWidth.value });
     this.ctrlNoteHeight = new IdRange('.js-note-height', this.elem).addEventListener('input', () => { App.map.settings.note.height = this.ctrlNoteHeight.value });
+    this.ctrlNoteAlignment = new IdAlignment('.js-note-alignment', this.elem).addEventListener('change', () => { App.map.settings.note.alignment = this.ctrlNoteAlignment.value }) as IdAlignment;
     this.ctrlNoteLinewidth = new IdRange('.js-note-linewidth', this.elem).addEventListener('input', () => { App.map.settings.note.lineWidth = this.ctrlNoteLinewidth.value });
     this.ctrlNoteRounding = new IdRange('.js-note-rounding', this.elem).addEventListener('input', () => { App.map.settings.note.rounding = this.ctrlNoteRounding.value });
 
@@ -206,6 +208,7 @@ export class RenderPanel extends Panel implements Subscriber {
 
     this.ctrlNoteWidth.value = App.map.settings.note.width;
     this.ctrlNoteHeight.value = App.map.settings.note.height;
+    this.ctrlNoteAlignment.value = App.map.settings.note.alignment;
     this.ctrlNoteLinewidth.value = App.map.settings.note.lineWidth;
     this.ctrlNoteRounding.value = App.map.settings.note.rounding;
     this.setNotePickerColor();  

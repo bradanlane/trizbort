@@ -1,4 +1,5 @@
 import { RoomShape, LineStyle } from "../enums";
+import { TextAlign } from '../drawing/IScreen'
 
 class MapSettingsBasic {
   fontFamily = 'Roboto';
@@ -70,6 +71,7 @@ class MapSettingsNote {
   lineWidth = 1;
   lineStyle = LineStyle.Solid;
   shape = RoomShape.Rectangle;
+  alignment = TextAlign.Center;
   rounding = 0;
   fillColor = '#ffffff'
   borderColor = '#000000';

@@ -32,6 +32,7 @@ import idQuickColor from '../controls/idQuickColor/idQuickColor.handlebars?raw';
 import idRadio from '../controls/idRadio/idRadio.handlebars?raw';
 import idRange from '../controls/idRange/idRange.handlebars?raw';
 import idShape from '../controls/idShape/idShape.handlebars?raw';
+import idAlignment from '../controls/idAlignment/idAlignment.handlebars?raw'
 import idTextarea from '../controls/idTextarea/idTextarea.handlebars?raw';
 import idGuide from '../controls/idGuide/idGuide.handlebars?raw';
 
@@ -84,6 +85,7 @@ const templates: Record<string, string> = {
   idRadio,
   idRange,
   idShape,
+  idAlignment,
   idTextarea,
   idGuide,
   // Panels

@@ -452,9 +452,10 @@ export class Canvas implements IScreen {
     return lines;
   }
 
-  // Draw text centered at (x, y), inside an area no wider than <maxWidth>
+  // Draw text inside an area no wider than <maxWidth>
+  // default alignment is centered 
   // Supports **bold** and *italic* markdown.
-  drawText(x: number, y: number, width: number, height: number, fontSize: number, font: string, text: string): IScreen {
+  drawText(x: number, y: number, width: number, height: number, fontSize: number, font: string, text: string, align: TextAlign = TextAlign.Center): IScreen {
     const lineHeight = Math.ceil(fontSize) + 1;
 
     // Split by explicit line breaks first
@@ -476,13 +477,13 @@ export class Canvas implements IScreen {
       wrappedLines.push(...wrapped);
     }
 
-    // Calculate vertical centering
-    const xPos = x + width / 2;
+    // Horizontal alignment in bounds.
+    const xPos = align === TextAlign.Left ? x : align === TextAlign.Right ? x + width : x + width / 2;
     let yPos = y - (wrappedLines.length - 1) * lineHeight / 2 + height / 2;
 
     // Render each wrapped line
     for (const lineSegments of wrappedLines) {
-      this.renderSegments(lineSegments, xPos, yPos, fontSize, font);
+      this.renderSegments(lineSegments, xPos, yPos, fontSize, font, align);
       yPos += lineHeight;
     }
 
@@ -548,9 +549,9 @@ export class Canvas implements IScreen {
     return lines.length > 0 ? lines : [[{ text: '', bold: false, italic: false }]];
   }
 
-  // Render segments centered at xPos, yPos
-  private renderSegments(segments: TextSegment[], xPos: number, yPos: number, fontSize: number, font: string): void {
-    // Calculate total width for centering
+  // Render segments at xPos, yPos with configurable alignment.
+  private renderSegments(segments: TextSegment[], xPos: number, yPos: number, fontSize: number, font: string, align: TextAlign): void {
+    // Calculate total width for alignment.
     let totalWidth = 0;
     const widths: number[] = [];
 
@@ -561,8 +562,9 @@ export class Canvas implements IScreen {
       totalWidth += w;
     }
 
-    // Render centered
-    let currentX = xPos - totalWidth / 2;
+    let currentX = xPos;
+    if(align === TextAlign.Center) currentX = xPos - totalWidth / 2;
+    if(align === TextAlign.Right) currentX = xPos - totalWidth;
     this.textBaseline(TextBaseline.Middle);
 
     for (let i = 0; i < segments.length; i++) {

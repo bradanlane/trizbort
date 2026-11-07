@@ -1,6 +1,7 @@
 import { Map, Box, Room, Note, Block, Connector } from "./models";
 import { Direction, LineStyle, RoomShape } from "./enums";
 import { MarkdownParser, TextSegment } from "./util/MarkdownParser";
+import { TextAlign } from "./drawing/IScreen";
 
 //
 // The SvgExporter exports the map to an SVG file.
@@ -456,7 +457,9 @@ export class SvgExporter {
     // Text with markdown support
     const fontSize = this.map.settings.basic.fontSize;
     const fontFamily = this.map.settings.basic.fontFamily;
-    const cx = note.x + note.width / 2;
+    const noteTextAlign = this.map.settings.note.alignment;
+    const textAnchor = noteTextAlign === TextAlign.Left ? 'start' : noteTextAlign === TextAlign.Right ? 'end' : 'middle';
+    const textX = noteTextAlign === TextAlign.Left ? note.x : noteTextAlign === TextAlign.Right ? note.x + note.width : note.x + note.width / 2;
     const lineHeight = fontSize * 1.2;
 
     // Split by newlines and render each line
@@ -468,7 +471,7 @@ export class SvgExporter {
       const lineY = startY + lineIndex * lineHeight;
       const segments = MarkdownParser.parse(line);
 
-      parts.push(`    <text x="${cx}" y="${lineY}" text-anchor="middle" dominant-baseline="middle" fill="${note.textColor}" font-size="${fontSize}" font-family="${fontFamily}">`);
+      parts.push(`    <text x="${textX}" y="${lineY}" text-anchor="${textAnchor}" dominant-baseline="middle" fill="${note.textColor}" font-size="${fontSize}" font-family="${fontFamily}">`);
 
       segments.forEach(segment => {
         const style = this.getSegmentStyle(segment);

@@ -71,7 +71,8 @@ export class NoteView extends BoxView {
       .drawText(0, 0, this.note.width, this.note.height, 
         App.map.settings.basic.fontSize,
         App.map.settings.basic.fontFamily,
-        this.note.text);
+        this.note.text,
+        App.map.settings.note.alignment);
 
     canvas.restore();    
   }
