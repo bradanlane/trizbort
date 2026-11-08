@@ -5,7 +5,7 @@ class MapSettingsBasic {
   fontFamily = 'Roboto';
   fontSize = 13;
   handdrawn = false;
-  recentColors = [ '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff' ];
+  recentColors = [ '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff' ];
 }
 
 class MapSettingsGrid {

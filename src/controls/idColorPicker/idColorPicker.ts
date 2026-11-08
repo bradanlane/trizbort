@@ -2,7 +2,7 @@ import { Control, IdPopup } from "../";
 import { Values } from "../../enums";
 
 export class IdColorPicker extends Control {
-  private static readonly RECENT_COLORS_COUNT = 6;
+  private static readonly RECENT_COLORS_COUNT = 10;
   private static readonly DEFAULT_RECENT_COLOR = '#ffffff';
 
   private canvasHSL: HTMLCanvasElement;
