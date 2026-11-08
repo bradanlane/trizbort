@@ -101,7 +101,7 @@ export class MenuPanel extends Panel {
     new Window('New map', 'This will erase all editor contents. Proceed?', () => {
       // OK
       this.close();
-      App.map = new Map();
+      App.setMap(new Map());
       Dispatcher.notify(AppEvent.Load, null);
       IdGuide.resetTipsForNewMap();
     }, () => {
@@ -154,7 +154,7 @@ export class MenuPanel extends Panel {
         false);
       return;
     }
-    App.map = map;
+    App.setMap(map);
     // Broadcast that we've loaded a new map:
     Dispatcher.notify(AppEvent.Load, null);
   }
@@ -174,7 +174,7 @@ export class MenuPanel extends Panel {
       return;
     }
 
-    App.map = map;
+    App.setMap(map);
     // Broadcast that we've loaded a new map:
     Dispatcher.notify(AppEvent.Load, null);
   }

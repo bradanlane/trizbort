@@ -286,7 +286,7 @@ export class Editor implements Subscriber {
     let savedJSON = localStorage.getItem('map');
     if(savedJSON) {
       try {
-        App.map = MapJSON.load(savedJSON);
+        App.setMap(MapJSON.load(savedJSON));
         Dispatcher.notify(AppEvent.Load, null);
       } catch (error) {
       }
@@ -299,7 +299,7 @@ export class Editor implements Subscriber {
     // If nothing is specified, then no wap will be loaded.
     let mapURL = this.getParameterByName('map');
     if(mapURL) this.fetchFile(mapURL, (data) => {
-      App.map = MapJSON.load(data);
+      App.setMap(MapJSON.load(data));
       // Broadcast that we've loaded a new map:
       Dispatcher.notify(AppEvent.Load, null);        
     });

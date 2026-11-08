@@ -2,7 +2,7 @@ import { Map } from './models'
 import { Dispatcher } from './Dispatcher'
 import { Values, AppEvent, MouseMode } from './enums/'
 import { Editor } from './Editor'
-import { Tabs, IdGuide, Header } from './controls'
+import { Tabs, IdGuide, Header, IdColorPicker } from './controls'
 import { BlockPopup, ConnectorPopup, NotePopup, RoomPopup } from './popups/'
 import { BlockPanel, ConnectorPanel, RenderPanel, MapPanel, MenuPanel, NotePanel, RoomPanel, ToolPanel } from './panels'
 import { MapJSON } from './io/mapJSON'
@@ -55,6 +55,12 @@ export class App {
 
     IdGuide.guide("Welcome to Trizbort.io!", "To start building your map, click the <b>room icon</b> in the tool bar and click anywhere on the map to place your first room (or press <kbd>Ctrl/⌘</kbd><kbd>1</kbd>).");
   }  
+  
+    static setMap(map: Map) {
+      // we wrap the map assignment so we may perform additional actions whenever the map is changed, such as updating recent colors.
+      this.map = map;
+      IdColorPicker.setRecentColors(this.map.settings.basic.recentColors);
+    }
 
   static pushUndo() {
     this.undoStack.push(MapJSON.save(this.map));
@@ -66,7 +72,7 @@ export class App {
   static undo() {
     if(this.undoStack.length == 0) return;
     let json = this.undoStack.pop();
-    this.map = MapJSON.load(json);
+    this.setMap(MapJSON.load(json));
     Dispatcher.notify(AppEvent.Refresh, null);
   }
 

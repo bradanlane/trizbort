@@ -69,6 +69,11 @@ export class RenderPanel extends Panel implements Subscriber {
     super('renderpanel', Handlebars.templates.RenderPanel, { });
     Dispatcher.subscribe(this);
 
+    IdColorPicker.setRecentColors(App.map.settings.basic.recentColors);
+    window.addEventListener('id-recent-colors-changed', () => {
+      App.map.settings.basic.recentColors = IdColorPicker.getRecentColors();
+    });
+
     this.ctrlGridVisible = new IdCheck('.js-grid-visible', this.elem).addEventListener('input', () => { App.map.settings.grid.visible = this.ctrlGridVisible.checked})
     this.ctrlGridOrigin = new IdCheck('.js-grid-origin', this.elem).addEventListener('input', () => { App.map.settings.grid.origin = this.ctrlGridOrigin.checked})
     this.ctrlGridSnap = new IdCheck('.js-grid-snap', this.elem).addEventListener('input', () => { App.map.settings.grid.snap = this.ctrlGridSnap.checked})
@@ -221,6 +226,9 @@ export class RenderPanel extends Panel implements Subscriber {
   }
 
   notify(event: AppEvent, obj: any) {
+    if(event == AppEvent.Load) {
+      IdColorPicker.setRecentColors(App.map.settings.basic.recentColors);
+    }
     if(event == AppEvent.More) {
       if(obj instanceof MapSettings) {
         this.open();
@@ -236,6 +244,7 @@ export class RenderPanel extends Panel implements Subscriber {
   applyTheme(theme: string) {
     new Window('Apply theme', 'Applying a new theme will overwrite all render settings. Proceed?', () => {
       // OK
+      const recentColors = IdColorPicker.getRecentColors();
       switch(theme) {
         case 'obsidian':
           App.map.settings = new ObsidianTheme();
@@ -250,6 +259,8 @@ export class RenderPanel extends Panel implements Subscriber {
           App.map.settings = new MapSettings();
           break;
       }
+      App.map.settings.basic.recentColors = recentColors;
+      IdColorPicker.setRecentColors(recentColors);
       this.refresh();
       Dispatcher.notify(AppEvent.Refresh, null);
     }, () => {

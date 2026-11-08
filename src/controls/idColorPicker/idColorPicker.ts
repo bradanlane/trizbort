@@ -2,6 +2,9 @@ import { Control, IdPopup } from "../";
 import { Values } from "../../enums";
 
 export class IdColorPicker extends Control {
+  private static readonly RECENT_COLORS_COUNT = 6;
+  private static readonly DEFAULT_RECENT_COLOR = '#ffffff';
+
   private canvasHSL: HTMLCanvasElement;
   private canvasHue: HTMLCanvasElement;
   private ctxHSL: CanvasRenderingContext2D;
@@ -15,7 +18,27 @@ export class IdColorPicker extends Control {
   private currentHSLX: number = 150;
   private currentHSLY: number = 75;  
 
-  private static recentColors = [ '#ffffff', '#ffffff', '#ffffff' ];
+  private static recentColors = new Array<string>(IdColorPicker.RECENT_COLORS_COUNT).fill(IdColorPicker.DEFAULT_RECENT_COLOR);
+
+  private static normalizeRecentColors(colors: string[] = []): Array<string> {
+    let recentColors = colors
+      .filter((color) => typeof color === 'string' && color.trim() != '')
+      .slice(0, IdColorPicker.RECENT_COLORS_COUNT);
+    while(recentColors.length < IdColorPicker.RECENT_COLORS_COUNT) {
+      recentColors.push(IdColorPicker.DEFAULT_RECENT_COLOR);
+    }
+    return recentColors;
+  }
+
+  static setRecentColors(colors: string[] = []) {
+    IdColorPicker.recentColors = IdColorPicker.normalizeRecentColors(colors);
+    let evt = new CustomEvent('id-recent-colors-changed');
+    window.dispatchEvent(evt);
+  }
+
+  static getRecentColors(): Array<string> {
+    return [...IdColorPicker.recentColors];
+  }
 
   // 
   // Create a new instance of IdColorPicker by providing a query selector that
@@ -108,13 +131,9 @@ export class IdColorPicker extends Control {
   private addToRecent(color: string) {
     // Shift the new color into the front of the list
     // of recent colors.
-    IdColorPicker.recentColors.unshift(color);
-    IdColorPicker.recentColors.pop();
-
-    // Fire a global event to tell all IdColorpicker instances that
-    // the recent colors have changed.
-    let evt = new CustomEvent('id-recent-colors-changed');
-    window.dispatchEvent(evt);
+    let recentColors = IdColorPicker.getRecentColors();
+    recentColors.unshift(color);
+    IdColorPicker.setRecentColors(recentColors);
   }  
 
   // 
