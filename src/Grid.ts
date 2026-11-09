@@ -113,6 +113,8 @@ export class Grid {
   }
 
   private readBackgroundMetadata(path: string) {
+    // if(!this.isSameOrigin(path)) return;
+
     fetch(path)
       .then((response) => {
         if(!response.ok) return '';

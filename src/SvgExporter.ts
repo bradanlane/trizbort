@@ -19,6 +19,7 @@ export class SvgExporter {
   private backgroundDataUrl = '';
   private backgroundWidth = 0;
   private backgroundHeight = 0;
+  private backgroundExportFailed = false;
 
   public constructor(map: Map) {
     this.map = map;
@@ -27,13 +28,19 @@ export class SvgExporter {
   //
   // Export the current map to an SVG file.
   //
-  public async export() {
+  public async export(): Promise<boolean> {
+    this.backgroundExportFailed = false;
+
     // Load fonts as base64
     const fontStyles = await this.loadFonts();
 
     // Load optional background image as embedded data URL so the SVG is
     // self-contained and does not rely on remote assets after download.
     await this.loadBackgroundImage();
+
+    if((this.map.settings.grid.backgroundUrl || '').trim() && !this.backgroundDataUrl) {
+      this.backgroundExportFailed = true;
+    }
 
     // Calculate bounding box after background dimensions are known so
     // export area includes either object or background extents.
@@ -44,17 +51,19 @@ export class SvgExporter {
 
     // Download
     this.download(svg);
+    return !this.backgroundExportFailed;
   }
 
   // Fetch the configured background image and cache it as a data URL.
   // Failures are intentionally non-fatal so SVG export still succeeds.
+  // Cross-origin sources are intentionally skipped to avoid CORS errors.
   private async loadBackgroundImage(): Promise<void> {
     this.backgroundDataUrl = '';
     this.backgroundWidth = 0;
     this.backgroundHeight = 0;
 
     const url = (this.map.settings.grid.backgroundUrl || '').trim();
-    if (!url) return;
+    if (!url || !this.isSameOrigin(url)) return;
 
     try {
       const response = await fetch(url);
@@ -73,6 +82,15 @@ export class SvgExporter {
       }
     } catch {
       // If the image fails to load, keep exporting without it.
+    }
+  }
+
+  private isSameOrigin(path: string) {
+    try {
+      const url = new URL(path, window.location.href);
+      return url.origin === window.location.origin;
+    } catch {
+      return false;
     }
   }
 

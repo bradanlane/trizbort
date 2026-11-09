@@ -85,15 +85,27 @@ export class MenuPanel extends Panel {
     });
   }
 
-  actionExportPNG() {
-    new PngExporter(App.map).export();
+  async actionExportPNG() {
     this.close();
+    const exported = await new PngExporter(App.map).export();
+
+    if((App.map.settings.grid.backgroundUrl || '').trim() && !exported) {
+      IdToast.toast('The map\'s background image was not included in the export because the source does not allow cross-origin access.');
+      return;
+    }
+
     IdToast.toast("Map exported as PNG.");
   }
 
-  actionExportSvg() {
-    new SvgExporter(App.map).export();
+  async actionExportSvg() {
     this.close();
+    const exported = await new SvgExporter(App.map).export();
+
+    if((App.map.settings.grid.backgroundUrl || '').trim() && !exported) {
+      IdToast.toast('The map\'s background image was not included in the export because the source does not allow cross-origin access.');
+      return;
+    }
+
     IdToast.toast("Map exported as SVG.");
   }
 

@@ -18,6 +18,7 @@ export class PngExporter {
   // Optional loaded background image for export. Null when unavailable
   // or when CORS rules prevent safe rendering.
   private backgroundImage: HTMLImageElement | null = null;
+  private backgroundExportFailed = false;
 
   public constructor(map: Map) {
     this.map = map;
@@ -115,19 +116,15 @@ export class PngExporter {
     }
   }
 
-  // Load the configured background URL for export. For remote URLs, request
-  // anonymous CORS so the canvas stays readable when the server allows it.
+  // Load the configured background URL for export. Cross-origin images are
+  // intentionally skipped because drawing them onto a canvas can taint export
+  // output and browsers reject the fetch before the image can be used.
   private loadBackgroundGraphic(): Promise<HTMLImageElement | null> {
     const url = (this.map.settings.grid.backgroundUrl || '').trim();
-    if(!url) return Promise.resolve(null);
+    if(!url || !this.isSameOrigin(url)) return Promise.resolve(null);
 
     return new Promise((resolve) => {
       const image = new Image();
-      if(!this.isSameOrigin(url)) {
-        // Ask browser for CORS-enabled image loading. If host does not
-        // allow it, onerror fires and we skip the background image.
-        image.crossOrigin = 'anonymous';
-      }
       image.onload = () => resolve(image);
       image.onerror = () => resolve(null);
       image.src = url;
@@ -202,9 +199,15 @@ export class PngExporter {
   // Export the current map to a PNG file, which is offered
   // for download.
   // 
-  public async export() {
+  public async export(): Promise<boolean> {
+    this.backgroundExportFailed = false;
+
     // Load optional background image before render passes begin.
     this.backgroundImage = await this.loadBackgroundGraphic();
+    const backgroundUrl = (this.map.settings.grid.backgroundUrl || '').trim();
+    if(backgroundUrl && !this.backgroundImage) {
+      this.backgroundExportFailed = true;
+    }
 
     // Create views for all models.
     this.views = [];
@@ -290,40 +293,48 @@ export class PngExporter {
     // Do a final render with solid background:
     this.render(true);
 
-    // Download result blob:
-    this.downloadAsBlob();
+    // Download result blob and report whether the configured background was
+    // included successfully.
+    return await this.downloadAsBlob();
   }
 
   // 
   // Convert the canvas contents to a blob and download it.
   // 
-  private downloadAsBlob() {
-    // Create blob. The browser takes a callback function for this:
-    this.toBlob((blob) => {
-      if(blob) {
-        this.downloadAsBlobCallback(blob);
-        return;
-      }
+  private downloadAsBlob(): Promise<boolean> {
+    return new Promise((resolve) => {
+      // Create blob. The browser takes a callback function for this:
+      this.toBlob((blob) => {
+        if(blob) {
+          this.downloadAsBlobCallback(blob);
+          resolve(!this.backgroundExportFailed);
+          return;
+        }
 
-      if(this.backgroundImage) {
-        // Most likely canvas tainting from a cross-origin background image.
-        // Retry once without the background graphic instead of hard-failing.
-        console.warn('PNG export retrying without background image (cross-origin restriction).');
-        this.backgroundImage = null;
-        this.render(true);
-        this.toBlob((retryBlob) => {
-          if(retryBlob) {
-            this.downloadAsBlobCallback(retryBlob);
-          } else {
-            alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
-          }
-        }, 'image/png', 1);
-        return;
-      }
+        if(this.backgroundImage) {
+          // Most likely canvas tainting from a cross-origin background image.
+          // Retry once without the background graphic instead of hard-failing.
+          console.warn('PNG export retrying without background image (cross-origin restriction).');
+          this.backgroundImage = null;
+          this.backgroundExportFailed = true;
+          this.render(true);
+          this.toBlob((retryBlob) => {
+            if(retryBlob) {
+              this.downloadAsBlobCallback(retryBlob);
+              resolve(false);
+            } else {
+              alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
+              resolve(false);
+            }
+          }, 'image/png', 1);
+          return;
+        }
 
-      // Nothing left to retry (or retry also failed).
-      alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
-    }, "image/png", 1);
+        // Nothing left to retry (or retry also failed).
+        alert('PNG export failed. The browser blocked image export, likely due to cross-origin restrictions.');
+        resolve(false);
+      }, "image/png", 1);
+    });
   }
 
   private downloadAsBlobCallback(blob: Blob) {
