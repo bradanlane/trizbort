@@ -58,3 +58,5 @@ I also found a few things ...
 1. UI for an optional max length of connector name text and then text wrap support
 1. Text alignment for Notes _(this was a more extensive change than others as it required adding a new control type and leverage the existing `TextAlign` in new locations; however, the implementation now allows for other view types to take advantage of it)_
 1. Extend Recent Colors to 10 to match Standard Colors. Persist the recent colors in the map JSON.
+1. Updated background image export code to use in-memory background graphic (resolves most CORS issues)
+1. Support wrapping in SVG export and add option of converting fonts to outline (to preserve hand drawn style)
