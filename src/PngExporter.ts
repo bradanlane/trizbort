@@ -105,26 +105,16 @@ export class PngExporter {
     this.canvas.restore();
   }
 
-  // Check whether a URL resolves to this app's origin.
-  // Same-origin images can be drawn/exported without CORS negotiation.
-  private isSameOrigin(path: string) {
-    try {
-      const url = new URL(path, window.location.href);
-      return url.origin === window.location.origin;
-    } catch {
-      return false;
-    }
-  }
-
-  // Load the configured background URL for export. Cross-origin images are
-  // intentionally skipped because drawing them onto a canvas can taint export
-  // output and browsers reject the fetch before the image can be used.
+  // Load the configured background URL for export. We request cross-origin
+  // images in anonymous mode so export can succeed when the remote server
+  // explicitly allows CORS for this origin.
   private loadBackgroundGraphic(): Promise<HTMLImageElement | null> {
     const url = (this.map.settings.grid.backgroundUrl || '').trim();
-    if(!url || !this.isSameOrigin(url)) return Promise.resolve(null);
+    if(!url) return Promise.resolve(null);
 
     return new Promise((resolve) => {
       const image = new Image();
+      image.crossOrigin = 'anonymous';
       image.onload = () => resolve(image);
       image.onerror = () => resolve(null);
       image.src = url;

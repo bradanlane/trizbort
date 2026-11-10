@@ -23,6 +23,7 @@ export class RenderPanel extends Panel implements Subscriber {
   private mapColorButtons: Array<IdPopup>;
   private ctrlFontSize: IdRange;
   private ctrlFontType: IdCheck;
+  private ctrlSvgTextOutlines: IdCheck;
 
   private ctrlRoomWidth: IdRange;
   private ctrlRoomHeight: IdRange;
@@ -107,6 +108,9 @@ export class RenderPanel extends Panel implements Subscriber {
 
     this.ctrlFontSize = new IdRange('.js-font-size', this.elem).addEventListener('input', () => { App.map.settings.basic.fontSize = this.ctrlFontSize.value; });
     this.ctrlFontType = new IdCheck('.js-font-type', this.elem).addEventListener('input', () => { App.map.settings.basic.fontFamily = this.ctrlFontType.checked ? 'danielbd' :'Roboto'; })
+    this.ctrlSvgTextOutlines = new IdCheck('.js-svg-text-outlines', this.elem).addEventListener('input', () => {
+      App.map.settings.basic.svgTextAsOutlines = this.ctrlSvgTextOutlines.checked;
+    });
 
     this.elem.querySelector('.js-theme-diagram').addEventListener('click', () => { this.applyTheme('diagram'); });
     this.elem.querySelector('.js-theme-obsidian').addEventListener('click', () => { this.applyTheme('obsidian'); });
@@ -195,6 +199,7 @@ export class RenderPanel extends Panel implements Subscriber {
     this.ctrlHanddrawn.checked = App.map.settings.basic.handdrawn;
     this.ctrlFontSize.value = App.map.settings.basic.fontSize;
     this.ctrlFontType.checked = App.map.settings.basic.fontFamily != 'Roboto';
+    this.ctrlSvgTextOutlines.checked = !!App.map.settings.basic.svgTextAsOutlines;
     
     this.ctrlRoomWidth.value = App.map.settings.room.width;
     this.ctrlRoomHeight.value = App.map.settings.room.height;

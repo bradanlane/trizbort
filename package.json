@@ -12,7 +12,8 @@
   "author": "Alexander van Oostenrijk / Independent Software (www.independent-software.com)",
   "license": "MIT",
   "dependencies": {
-    "file-saver": "^2.0.5"
+    "file-saver": "^2.0.5",
+    "opentype.js": "^2.0.0"
   },
   "devDependencies": {
     "@types/file-saver": "^2.0.7",
@@ -25,7 +26,7 @@
     "terser": "^5.46.0",
     "typescript": "^5.0.0",
     "vite": "^6.4.1",
-    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-pwa": "^1.1.0",
     "vite-plugin-static-copy": "^3.1.5"
   }
 }

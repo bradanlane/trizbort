@@ -5,6 +5,7 @@ class MapSettingsBasic {
   fontFamily = 'Roboto';
   fontSize = 13;
   handdrawn = false;
+  svgTextAsOutlines = false;
   recentColors = [ '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff', '#ffffff' ];
 }
 
