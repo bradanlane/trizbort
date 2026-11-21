@@ -18,7 +18,7 @@
 - [ ] Resize/drag handle size
 - [ ] Snap to element distance
 - [ ] Document-specific margins
-- [ ] Map-level background
+- [x] Map-level background
 
 ## App settings (stored in Local Storage)
 
